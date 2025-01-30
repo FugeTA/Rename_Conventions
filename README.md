@@ -1,5 +1,5 @@
 # Rename_Conventions
-![screenshot](images/Texture_Connector_Window.PNG)  
+![screenshot](images/rename.gif)  
 ## 概要
 Mayaのオブジェクトの命名規則を自動で設定するツールです。
 ## 要件
