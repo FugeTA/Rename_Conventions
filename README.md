@@ -1,5 +1,6 @@
 # Rename_Conventions
-![screenshot](images/rename.gif)  
+![demo](image/rename.gif)  
+<img src="images/rename.gif" width="400">
 ## 概要
 Mayaのオブジェクトの命名規則を自動で設定するツールです。
 ## 要件
