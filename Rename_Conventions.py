@@ -369,7 +369,10 @@ def openWindow():
     app = QtWidgets.QApplication.instance()
     window = MainWindow(title)
     window.show()
-    app.exec_()
+    try:
+        app.exec()  #Pyside6
+    except:
+        app.exec_()  #Pyside2
 
 # 直接実行されたら
 if __name__ == '__main__':
