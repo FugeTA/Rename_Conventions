@@ -22,8 +22,9 @@ class MainWindow(mayaMixin.MayaQWidgetBaseMixin,QtWidgets.QWidget):
         self.layout = self.defLayout = '<SIDE>_<NAME>_<TYPE>'
         self.setLayout(self.layouts())
         self.resize(600, 600)
+        cmds.scriptJob(e=['SelectionChanged',self.getObjName],p=objName(title),cu=True)  # Maya上で選択されたときにウィンドウにも反映
         self.getObjName()  # 起動時の選択反映
-        self.sjnum = cmds.scriptJob(e=['SelectionChanged',self.getObjName],p=objName(title),cu=True)  # Maya上で選択されたときにウィンドウにも反映
+
 
     def layouts(self):
         mainLayout = QtWidgets.QVBoxLayout()  # メインのレイアウト
@@ -152,6 +153,9 @@ class MainWindow(mayaMixin.MayaQWidgetBaseMixin,QtWidgets.QWidget):
 
     # 表の中身を作る
     def makeTable(self):
+        cmds.undoInfo(openChunk=True)
+        findSameName()
+        cmds.undoInfo(closeChunk=True)
         tableModel = QtGui.QStandardItemModel()
         labelList = cmds.ls(dag=True,tr=True)
         readOnly = cmds.ls(dag=True,tr=True,ud=True)
@@ -206,6 +210,8 @@ class MainWindow(mayaMixin.MayaQWidgetBaseMixin,QtWidgets.QWidget):
         self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)  # 選択方式を調整
         for name in s:
             items = self.tableModel.findItems(name, QtCore.Qt.MatchExactly)  # Mayaで選択したものを表から探す
+            if not items:
+                continue
             for item in items:
                 self.tableView.selectRow(item.row())
         self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)  # 選択方式を戻す
@@ -221,13 +227,14 @@ class MainWindow(mayaMixin.MayaQWidgetBaseMixin,QtWidgets.QWidget):
 
     # 選択時
     def on_click(self):
-        if cmds.scriptJob(ex=self.sjnum):
-            cmds.scriptJob(kill=self.sjnum,f=True)
-        cmds.select(cl=True)
+        sl = cmds.ls(sl=True)
+        shapes = [s for s in cmds.ls(sl=True) if "Shape" in s ]
+        cmds.select(shapes) # Shape以外の選択解除、Shapeは選択したままにする
+        if len(shapes) != len(sl):
+            cmds.select(cl=True)
         for sel in self.tableView.selectionModel().selectedRows():
             row = sel.row()
             cmds.select(self.tableModel.item(row, 0).text(), add=True)
-        self.sjnum = cmds.scriptJob(e=['SelectionChanged',self.getObjName],p=objName(self.title),cu=True)
 
     # ウィンドウのリセット
     def reset(self):
@@ -302,6 +309,30 @@ def getType(c,fix,s):
     except:
         affix = None
     return(type_,affix)
+
+def findSameName():
+    # 全部取得
+    sl = cmds.ls(ap=True)
+    # 名前が同じものを取得
+    sl = [s for s in sl if "|" in s ]
+    # Shapeをはじく
+    sl = [s for s in sl if not "Shape" in s ]
+    if sl:
+        sameNameChange(sl)
+
+def sameNameChange(sl):
+    # forでrename
+    for i, s in enumerate(sl):
+        # 親を消す
+        sname = s.split('|')[-1]
+        # 最後の数字部分を取る
+        num = re.search('(\d*)$',s)
+        if g := num.group():
+            sname = sname[:-1*len(g)]
+            n = g[:-1*len(str(int(g)))]
+            sname += n
+        cmds.rename(s, sname+str(i+int(g)))
+    findSameName()
 
 # オブジェクトタイプと辞書を確認
 def getName(s,dict_,layout,side,options):
